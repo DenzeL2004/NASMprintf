@@ -1,6 +1,8 @@
 %ifndef _GEN_MAC_
 %define _GEN_MAC_
 
+%define TERM_CHAR 0x00      ;terminate string's symbol 
+
 %define CONSOL_OUT 0x01
 
 ;----------------------------------------------------------------
@@ -30,12 +32,37 @@
     mov rax, 1h     ;syscall number
     mov rdi, %1     ;stdout address
 
-    mov rsi, %2     ;character buffer
+    mov rsi, %2     ;string address
     mov rdx, %3     ;string's lenrth
 
     syscall
 
 %endmacro
+
+section .text
+
+;------------------------------------------------------------------------
+;Get string lenrth
+;------------------------------------------------------------------------
+;Expected:  string end by terminate symbol 
+;Entre:     es - segment, rdi - string's address
+;Exit:      rdi - length
+;Destroy:   al, rdi, df
+;------------------------------------------------------------------------
+
+_get_len:
+
+    cld                 ;set df by 0
+
+    mov al, TERM_CHAR
+    mov rsi, rdi    
+
+    repne scasb           ;fint address where string end terminate symbol
+    
+    sub rdi, rsi          ;calc length
+    dec rdi
+
+    ret
 
 
 section .rodata 

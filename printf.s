@@ -9,13 +9,24 @@ static _specificator_processing:function
 
 static _print_char:function
 
+static _print_string:function
+
+static _print_dec_num:function
+
+static _print_hex_num:function
+
+static _print_oct_num:function
+
+static _print_bin_num:function
+
+
 section .text
 
 global _start                  ; predefined entry point name for ld
 
 _start:    
-
-    push '!'
+    
+    
     push msg
     push CONSOL_OUT
     call _print
@@ -106,7 +117,7 @@ _specificator_processing:
     cmp al, SPECIFICATOR            ;check character is specificator symbol
     jne .not_specificator_symbol
 
-    PRINT_STRING qword [out_descriptor], Ascii_table + SPECIFICATOR, 1 
+    PRINT_STRING qword [out_descriptor], Ascii_table + SPECIFICATOR, 0x01 
 
     sub r12, 0x08                   ;specifier printout does not require a parameter
 
@@ -114,7 +125,7 @@ _specificator_processing:
 
 .not_specificator_symbol:
 
-    sub al, 'c'                     ;subtract the minimum switch's value 
+    sub al, 'b'                     ;subtract the minimum switch's value 
     cmp al, byte Cnt_print_mode
     jae .print_switch_defaulte
 
@@ -124,6 +135,32 @@ _specificator_processing:
 
     call _print_char
     jmp .end_switch
+
+.print_switch_string:
+
+    call _print_string
+    jmp .end_switch
+
+.print_switch_dec_num:
+
+    call _print_dec_num
+    jmp .end_switch
+
+.print_switch_hex_num:
+
+    call _print_hex_num
+    jmp .end_switch
+
+.print_switch_bin_num:
+
+    call _print_bin_num
+    jmp .end_switch
+
+.print_switch_oct_num:
+
+    call _print_oct_num
+    jmp .end_switch
+
 
 .print_switch_defaulte:
     nop                             ;do anathing
@@ -137,34 +174,172 @@ _specificator_processing:
 
 section .rodata
 
-.start_print_switch: dq .print_switch_char         \
-                        .print_switch_defaulte     
+.start_print_switch: dq .print_switch_bin_num , \
+                        .print_switch_char    , \
+                        .print_switch_dec_num , \
+                        .print_switch_defaulte, \
+                        .print_switch_defaulte, \
+                        .print_switch_defaulte, \
+                        .print_switch_hex_num , \
+                        .print_switch_defaulte, \
+                        .print_switch_defaulte, \
+                        .print_switch_defaulte, \
+                        .print_switch_defaulte, \
+                        .print_switch_defaulte, \
+                        .print_switch_defaulte, \
+                        .print_switch_oct_num,  \
+                        .print_switch_defaulte, \
+                        .print_switch_defaulte, \
+                        .print_switch_defaulte, \
+                        .print_switch_string  , \
+                        .print_switch_defaulte, \
+                        .print_switch_defaulte, \
+                        .print_switch_defaulte, \
+                        .print_switch_defaulte, \
+                        .print_switch_defaulte
 
 Cnt_print_mode equ ($ - .start_print_switch) >> 0x03 ;count print's mode 
 
 section .text
+
 ;------------------------------------------------------------------------
-;specifier mode processing
+;specifier mode processing. Print character
 ;------------------------------------------------------------------------
 ;Expected:  out_descriptor 
 ;Entre:     rbx - ascii code symbol 
 ;Exit:      none
 ;Destroy:   rax, rdx, rsi, rdi 
-;--------------------------------------------------------------
+;------------------------------------------------------------------------
    
 _print_char:
 
     mov rsi, Ascii_table
     add rsi, rbx
-    PRINT_STRING qword [out_descriptor], rsi, 1
+    PRINT_STRING qword [out_descriptor], rsi, 0x01
     ret 
 
+;------------------------------------------------------------------------
+;specifier mode processing. Print string
+;------------------------------------------------------------------------
+;Expected:  out_descriptor 
+;Entre:     rbx - string's address
+;Exit:      none
+;Destroy:   rax, rdx, rsi, rdi 
+;------------------------------------------------------------------------
+   
+_print_string:
+
+    mov di, ds                      ;-------------------
+    mov es, di                      ;-------------------
+
+    mov rdi, rbx                    ;-------------------
+    call _get_len                   ;get string's length
+
+    mov rdx, rdi                    ;save string's length
+
+    PRINT_STRING qword [out_descriptor], rbx, rdx
+    ret 
+
+;------------------------------------------------------------------------
+;specifier mode processing. Print number in decimal number system
+;------------------------------------------------------------------------
+;Expected:  out_descriptor 
+;Entre:     rbx - number 
+;Exit:      none
+;Destroy:   rax, rdx, rsi, rdi 
+;------------------------------------------------------------------------
+   
+_print_dec_num:
+
+    nop
+    ret 
+
+;------------------------------------------------------------------------
+;specifier mode processing. Print number in hexical number system
+;------------------------------------------------------------------------
+;Expected:  out_descriptor 
+;Entre:     rbx - number 
+;Exit:      none
+;Destroy:   rax, rdx, rsi, rdi 
+;------------------------------------------------------------------------
+   
+_print_hex_num:
+
+    xor rcx, rcx
+    mov cl, 0x40 	                ;counter
+
+.next:
+
+    sub cl, 0x04 				    ;decrement counter
+    
+    mov rdx, 0x0f			        ;hex mask
+    
+    shl rdx, cl      		        ;shift mask
+
+    and rdx, rbx				    ;get cur symbol
+    shr rdx, cl       			    ;move to rdx
+
+    mov rsi, Ascii_table
+    
+    add rsi, '0'
+    add rsi, rdx
+
+    cmp dx, 0x0a
+    jb .not_letter
+
+    sub rsi, 0x0a
+    add rsi, 0x31
+
+.not_letter:
+
+    push rcx    ;save to stack rcx, beccause syscall change rcx
+
+    PRINT_STRING qword [out_descriptor], rsi, 0x01
+
+    pop rcx     ;get rcx from stack
+
+    cmp cl, 0x00
+    jne .next
+
+
+    PRINT_STRING qword [out_descriptor], Ascii_table + 'h', 0x01
+
+    ret 
+
+;------------------------------------------------------------------------
+;specifier mode processing. Print number in binary number system
+;------------------------------------------------------------------------
+;Expected:  out_descriptor 
+;Entre:     rbx - number 
+;Exit:      none
+;Destroy:   rax, rdx, rsi, rdi 
+;------------------------------------------------------------------------
+   
+_print_bin_num:
+
+    nop
+    ret 
+
+;------------------------------------------------------------------------
+;specifier mode processing. Print number in octal number system
+;------------------------------------------------------------------------
+;Expected:  out_descriptor 
+;Entre:     rbx - number 
+;Exit:      none
+;Destroy:   rax, rdx, rsi, rdi 
+;------------------------------------------------------------------------
+   
+_print_oct_num:
+
+    nop
+    ret 
 
 section .data
 
 out_descriptor: dq 0x00
             
-msg:        db "%% Hello %%%c?", 0xa, TERM_CHAR
+msg:        db "%h", 0xa, TERM_CHAR
+string:     db "good bad", TERM_CHAR
 
 
 
