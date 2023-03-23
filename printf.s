@@ -36,6 +36,8 @@ _start:
     push CONSOL_OUT
     call _print
 
+    add sp, 0x08 * 8d
+
     EXIT 0
 
 
@@ -283,9 +285,8 @@ _print_int_dec_num:
     mov es, di
 
     mov rdi, temp_string + BUFFER_SIZE - 0x01   ;buffer address where we will write
-    
-    mov al, TERM_CHAR               ;----------------------------------
-    stosb                           ;set to buffer terminatee character                           
+    mov byte [rdi], TERM_CHAR                   ;set to buffer terminatee character
+    dec rdi
 
     mov ecx, 0x0a                   ;divider
 
@@ -305,7 +306,7 @@ _print_int_dec_num:
 
     cmp ebx, 0x00                   ;check num is zero
     jne .next
-    
+
     inc rdi                         ;------------------
     mov rbx, rdi                    ;get correct temp_string address
 
@@ -330,9 +331,8 @@ _print_hex_num:
     mov es, di
 
     mov rdi, temp_string + BUFFER_SIZE - 0x01   ;buffer address where we will write
-    
-    mov al, TERM_CHAR               ;----------------------------------
-    stosb                           ;set to buffer terminatee character                           
+    mov byte [rdi], TERM_CHAR                   ;set to buffer terminatee character
+    dec rdi                         
 
 .next:
     xor ax, ax
@@ -375,9 +375,8 @@ _print_bin_num:
     mov es, di
 
     mov rdi, temp_string + BUFFER_SIZE - 0x01   ;buffer address where we will write
-    
-    mov al, TERM_CHAR               ;----------------------------------
-    stosb                           ;set to buffer terminatee character                           
+    mov byte [rdi], TERM_CHAR                   ;set to buffer terminatee character
+    dec rdi                           
 
 .next:
 
@@ -419,9 +418,8 @@ _print_oct_num:
     mov es, di
 
     mov rdi, temp_string + BUFFER_SIZE - 0x01   ;buffer address where we will write
-    
-    mov al, TERM_CHAR               ;----------------------------------
-    stosb                           ;set to buffer terminatee character                           
+    mov byte [rdi], TERM_CHAR                   ;set to buffer terminatee character
+    dec rdi                              
 
 .next:
 
