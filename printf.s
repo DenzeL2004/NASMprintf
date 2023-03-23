@@ -11,7 +11,7 @@ static _print_char:function
 
 static _print_string:function
 
-static _print_dec_num:function
+static _print_int_dec_num:function
 
 static _print_hex_num:function
 
@@ -19,13 +19,18 @@ static _print_oct_num:function
 
 static _print_bin_num:function
 
-
 section .text
 
 global _start                  ; predefined entry point name for ld
 
 _start:    
     
+    push '!'
+    push string
+    push 101010b
+    push 01234567o
+    push 0xff33
+    push 12345d
     
     push msg
     push CONSOL_OUT
@@ -143,7 +148,7 @@ _specificator_processing:
 
 .print_switch_dec_num:
 
-    call _print_dec_num
+    call _print_int_dec_num
     jmp .end_switch
 
 .print_switch_hex_num:
@@ -208,14 +213,13 @@ section .text
 ;Expected:  out_descriptor 
 ;Entre:     rbx - ascii code symbol 
 ;Exit:      none
-;Destroy:   rax, rdx, rsi, rdi 
+;Destroy:   rax, rbx, rdx, rsi, rdi 
 ;------------------------------------------------------------------------
    
 _print_char:
 
-    mov rsi, Ascii_table
-    add rsi, rbx
-    PRINT_STRING qword [out_descriptor], rsi, 0x01
+    add rbx, Ascii_table
+    PRINT_STRING qword [out_descriptor], rbx, 0x01
     ret 
 
 ;------------------------------------------------------------------------
@@ -249,9 +253,67 @@ _print_string:
 ;Destroy:   rax, rdx, rsi, rdi 
 ;------------------------------------------------------------------------
    
-_print_dec_num:
+_print_int_dec_num:
 
-    nop
+    test ebx, dword [Int_min_val]   ;------------------------
+    je .not_negative                ;chec is negative number?
+
+    xor eax, eax                    ;--------------------------------
+    sub eax, ebx                    ;translate from additional format
+
+    cmp eax, ebx                    ;----------------------
+    jne .not_int_min                 ;check value is integer?
+
+    mov rbx, Int_min_str            ;-------------------
+    call _print_string              ;print Int_min_value
+
+    ret
+
+.not_int_min:
+
+    mov ebx, eax
+
+    PRINT_STRING qword [out_descriptor], Ascii_table + '-', 0x01
+
+.not_negative:
+
+    std
+
+    mov di, ds
+    mov es, di
+
+    mov rdi, temp_string + BUFFER_SIZE - 0x01   ;buffer address where we will write
+    
+    mov al, TERM_CHAR               ;----------------------------------
+    stosb                           ;set to buffer terminatee character                           
+
+    mov ecx, 0x0a                   ;divider
+
+.next:
+
+    mov eax, ebx                    ;--------------
+    xor edx, edx                    ;--------------
+    div ecx                         ;get last digit
+
+    xchg eax, edx                   ;change the remainder and quotient
+
+    mov ebx, edx                    ;save quotient
+
+    add al, '0'                     ;ascii code character
+
+    stosb                           ;set to buffer current character
+
+    cmp ebx, 0x00                   ;check num is zero
+    jne .next
+
+    mov rsi, rdi                    ;------------------
+    inc rsi                         ;get string address
+
+    mov rbx, temp_string + BUFFER_SIZE  ;-----------------------
+    sub rbx, rsi                        ;get print string length
+
+    PRINT_STRING qword [out_descriptor], rsi, rbx
+
     ret 
 
 ;------------------------------------------------------------------------
@@ -260,47 +322,43 @@ _print_dec_num:
 ;Expected:  out_descriptor 
 ;Entre:     rbx - number 
 ;Exit:      none
-;Destroy:   rax, rdx, rsi, rdi 
+;Destroy:   rax, rbx, rdx, rsi, rdi 
 ;------------------------------------------------------------------------
    
 _print_hex_num:
 
-    xor rcx, rcx
-    mov cl, 0x40 	                ;counter
+   std
+
+    mov di, ds
+    mov es, di
+
+    mov rdi, temp_string + BUFFER_SIZE - 0x01   ;buffer address where we will write
+    
+    mov al, TERM_CHAR               ;----------------------------------
+    stosb                           ;set to buffer terminatee character                           
 
 .next:
+    xor ax, ax
 
-    sub cl, 0x04 				    ;decrement counter
-    
-    mov rdx, 0x0f			        ;hex mask
-    
-    shl rdx, cl      		        ;shift mask
+    mov al, bl                      ;save cur number to rsi       
+    and al, 0x0f                    ;get last digit
 
-    and rdx, rbx				    ;get cur symbol
-    shr rdx, cl       			    ;move to rdx
+    mov al, byte [Hex_digit + rax]  ;get character in hex representation
 
-    mov rsi, Ascii_table
-    
-    add rsi, '0'
-    add rsi, rdx
+    stosb                           ;set to buffer current character
 
-    cmp dx, 0x0a
-    jb .not_letter
+    shr rbx, 0x04                   ;next digit
 
-    sub rsi, 0x0a
-    add rsi, 0x31
-
-.not_letter:
-
-    push rcx    ;save to stack rcx, beccause syscall change rcx
-
-    PRINT_STRING qword [out_descriptor], rsi, 0x01
-
-    pop rcx     ;get rcx from stack
-
-    cmp cl, 0x00
+    cmp rbx, 0x00                   ;check num is zero
     jne .next
 
+    mov rsi, rdi                    ;------------------
+    inc rsi                         ;get string address
+
+    mov rbx, temp_string + BUFFER_SIZE  ;-----------------------
+    sub rbx, rsi                        ;get print string length
+
+    PRINT_STRING qword [out_descriptor], rsi, rbx
 
     PRINT_STRING qword [out_descriptor], Ascii_table + 'h', 0x01
 
@@ -312,12 +370,45 @@ _print_hex_num:
 ;Expected:  out_descriptor 
 ;Entre:     rbx - number 
 ;Exit:      none
-;Destroy:   rax, rdx, rsi, rdi 
+;Destroy:   rax, rbx, rdx, rsi, rdi, df
 ;------------------------------------------------------------------------
    
 _print_bin_num:
 
-    nop
+    std
+
+    mov di, ds
+    mov es, di
+
+    mov rdi, temp_string + BUFFER_SIZE - 0x01   ;buffer address where we will write
+    
+    mov al, TERM_CHAR               ;----------------------------------
+    stosb                           ;set to buffer terminatee character                           
+
+.next:
+
+    mov al, bl                      ;save cur number to rsi       
+    and al, 0x01                    ;get last digit
+
+    add al, '0'                     ;ascii code character
+
+    stosb                           ;set to buffer current character
+
+    shr rbx, 0x01                   ;next digit
+
+    cmp rbx, 0x00                   ;check num is zero
+    jne .next
+
+    mov rsi, rdi                    ;------------------
+    inc rsi                         ;get string address
+
+    mov rbx, temp_string + BUFFER_SIZE  ;-----------------------
+    sub rbx, rsi                        ;get print string length
+
+    PRINT_STRING qword [out_descriptor], rsi, rbx
+
+    PRINT_STRING qword [out_descriptor], Ascii_table + 'b', 0x01
+
     ret 
 
 ;------------------------------------------------------------------------
@@ -331,15 +422,50 @@ _print_bin_num:
    
 _print_oct_num:
 
-    nop
+    std
+
+    mov di, ds
+    mov es, di
+
+    mov rdi, temp_string + BUFFER_SIZE - 0x01   ;buffer address where we will write
+    
+    mov al, TERM_CHAR               ;----------------------------------
+    stosb                           ;set to buffer terminatee character                           
+
+.next:
+
+    mov al, bl                      ;save cur number to rsi       
+    and al, 0x07                    ;get last digit
+
+    add al, '0'                     ;ascii code character
+
+    stosb                           ;set to buffer current character
+
+    shr rbx, 0x03                   ;next digit
+
+    cmp rbx, 0x00                   ;check num is zero
+    jne .next
+
+    mov rsi, rdi                    ;------------------
+    inc rsi                         ;get string address
+
+    mov rbx, temp_string + BUFFER_SIZE  ;-----------------------
+    sub rbx, rsi                        ;get print string length
+
+    PRINT_STRING qword [out_descriptor], rsi, rbx
+
+    PRINT_STRING qword [out_descriptor], Ascii_table + 'o', 0x01
+
     ret 
 
 section .data
 
 out_descriptor: dq 0x00
+
+temp_string: times BUFFER_SIZE db 0x00
             
-msg:        db "%h", 0xa, TERM_CHAR
-string:     db "good bad", TERM_CHAR
+msg:        db "%% %d %h %o %b %s %c I did it!!!", 0xa, TERM_CHAR
+string:     db "_ded32", TERM_CHAR
 
 
 
