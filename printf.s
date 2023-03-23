@@ -305,14 +305,11 @@ _print_int_dec_num:
 
     cmp ebx, 0x00                   ;check num is zero
     jne .next
+    
+    inc rdi                         ;------------------
+    mov rbx, rdi                    ;get correct temp_string address
 
-    mov rsi, rdi                    ;------------------
-    inc rsi                         ;get string address
-
-    mov rbx, temp_string + BUFFER_SIZE  ;-----------------------
-    sub rbx, rsi                        ;get print string length
-
-    PRINT_STRING qword [out_descriptor], rsi, rbx
+    call _print_string              ;print temp_string 
 
     ret 
 
@@ -352,13 +349,10 @@ _print_hex_num:
     cmp rbx, 0x00                   ;check num is zero
     jne .next
 
-    mov rsi, rdi                    ;------------------
-    inc rsi                         ;get string address
+    inc rdi                         ;------------------
+    mov rbx, rdi                    ;get correct temp_string address
 
-    mov rbx, temp_string + BUFFER_SIZE  ;-----------------------
-    sub rbx, rsi                        ;get print string length
-
-    PRINT_STRING qword [out_descriptor], rsi, rbx
+    call _print_string              ;print temp_string 
 
     PRINT_STRING qword [out_descriptor], Ascii_table + 'h', 0x01
 
@@ -399,13 +393,10 @@ _print_bin_num:
     cmp rbx, 0x00                   ;check num is zero
     jne .next
 
-    mov rsi, rdi                    ;------------------
-    inc rsi                         ;get string address
+    inc rdi                         ;------------------
+    mov rbx, rdi                    ;get correct temp_string address
 
-    mov rbx, temp_string + BUFFER_SIZE  ;-----------------------
-    sub rbx, rsi                        ;get print string length
-
-    PRINT_STRING qword [out_descriptor], rsi, rbx
+    call _print_string              ;print temp_string 
 
     PRINT_STRING qword [out_descriptor], Ascii_table + 'b', 0x01
 
@@ -446,13 +437,10 @@ _print_oct_num:
     cmp rbx, 0x00                   ;check num is zero
     jne .next
 
-    mov rsi, rdi                    ;------------------
-    inc rsi                         ;get string address
+    inc rdi                         ;------------------
+    mov rbx, rdi                    ;get correct temp_string address
 
-    mov rbx, temp_string + BUFFER_SIZE  ;-----------------------
-    sub rbx, rsi                        ;get print string length
-
-    PRINT_STRING qword [out_descriptor], rsi, rbx
+    call _print_string              ;print temp_string 
 
     PRINT_STRING qword [out_descriptor], Ascii_table + 'o', 0x01
 
