@@ -4,7 +4,6 @@
 %include "config.s"
 
 
-
 static _specificator_processing:function
 
 static _print_char:function
@@ -13,11 +12,13 @@ static _print_string:function
 
 static _print_int_dec_num:function
 
-static _print_hex_num:function
+static _print_hex_rep:function
 
-static _print_oct_num:function
+static _print_oct_rep:function
 
-static _print_bin_num:function
+static _print_bin_rep:function
+
+static _print_num_rep:function
 
 section .text
 
@@ -28,8 +29,8 @@ _start:
     push '!'
     push string
     push 101010b
-    push 01234567o
-    push 0xff33
+    push 0126574o
+    push 0x0ffee433
     push 12345d
     
     push msg
@@ -155,19 +156,18 @@ _specificator_processing:
 
 .print_switch_hex_num:
 
-    call _print_hex_num
-    jmp .end_switch
-
-.print_switch_bin_num:
-
-    call _print_bin_num
+    call _print_hex_rep
     jmp .end_switch
 
 .print_switch_oct_num:
 
-    call _print_oct_num
+    call _print_oct_rep
     jmp .end_switch
 
+.print_switch_bin_num:
+
+    call _print_bin_rep
+    jmp .end_switch
 
 .print_switch_defaulte:
     nop                             ;do anathing
@@ -315,15 +315,72 @@ _print_int_dec_num:
     ret 
 
 ;------------------------------------------------------------------------
-;specifier mode processing. Print number in hexical number system
+;specifier mode processing. Print number in bin number system
 ;------------------------------------------------------------------------
 ;Expected:  out_descriptor 
-;Entre:     rbx - number 
+;Entre:     rbx - number
 ;Exit:      none
-;Destroy:   rax, rbx, rdx, rsi, rdi 
+;Destroy:   rax, rbx, cx, rdx, rsi, rdi 
 ;------------------------------------------------------------------------
    
-_print_hex_num:
+_print_hex_rep:
+
+    mov rdx, Hex_digit
+    mov cl, 0x04
+    call _print_num_rep
+
+    PRINT_STRING  qword [out_descriptor], Ascii_table + 'h', 0x01
+
+    ret 
+
+;------------------------------------------------------------------------
+;specifier mode processing. Print number in bin number system
+;------------------------------------------------------------------------
+;Expected:  out_descriptor 
+;Entre:     rbx - number
+;Exit:      none
+;Destroy:   rax, rbx, cx, rdx, rsi, rdi 
+;------------------------------------------------------------------------
+   
+_print_oct_rep:
+
+    mov rdx, Oct_digit
+    mov cl, 0x03
+    call _print_num_rep
+
+    PRINT_STRING  qword [out_descriptor], Ascii_table + 'o', 0x01
+
+    ret 
+
+;------------------------------------------------------------------------
+;specifier mode processing. Print number in bin number system
+;------------------------------------------------------------------------
+;Expected:  out_descriptor 
+;Entre:     rbx - number
+;Exit:      none
+;Destroy:   rax, rbx, cx, rdx, rsi, rdi 
+;------------------------------------------------------------------------
+   
+_print_bin_rep:
+
+    mov rdx, Bin_digit
+    mov cl, 0x01
+    call _print_num_rep
+
+    PRINT_STRING  qword [out_descriptor], Ascii_table + 'b', 0x01
+
+    ret 
+
+;------------------------------------------------------------------------
+;specifier mode processing. Print number in second degree system
+;------------------------------------------------------------------------
+;Expected:  out_descriptor 
+;Entre:     rbx - number, rdx - print digit format, cl - power 2
+;Exit:      none
+;Destroy:   rax, rbx, cx, rdx, rsi, rdi 
+;------------------------------------------------------------------------
+   
+_print_num_rep:
 
    std
 
@@ -331,63 +388,26 @@ _print_hex_num:
     mov es, di
 
     mov rdi, temp_string + BUFFER_SIZE - 0x01   ;buffer address where we will write
-    mov byte [rdi], TERM_CHAR                   ;set to buffer terminatee character
-    dec rdi                         
+    
+    mov al, TERM_CHAR                           ;set to buffer terminatee character
+    stosb                         
 
-.next:
+    mov ch, 0x01                                ;--------
+    shl ch, cl                                  ;--------
+    dec ch                                      ;get mask                  
+
     xor ax, ax
 
-    mov al, bl                      ;save cur number to rsi       
-    and al, 0x0f                    ;get last digit
-
-    mov al, byte [Hex_digit + rax]  ;get character in hex representation
-
-    stosb                           ;set to buffer current character
-
-    shr rbx, 0x04                   ;next digit
-
-    cmp rbx, 0x00                   ;check num is zero
-    jne .next
-
-    inc rdi                         ;------------------
-    mov rbx, rdi                    ;get correct temp_string address
-
-    call _print_string              ;print temp_string 
-
-    PRINT_STRING qword [out_descriptor], Ascii_table + 'h', 0x01
-
-    ret 
-
-;------------------------------------------------------------------------
-;specifier mode processing. Print number in binary number system
-;------------------------------------------------------------------------
-;Expected:  out_descriptor 
-;Entre:     rbx - number 
-;Exit:      none
-;Destroy:   rax, rbx, rdx, rsi, rdi, df
-;------------------------------------------------------------------------
-   
-_print_bin_num:
-
-    std
-
-    mov di, ds
-    mov es, di
-
-    mov rdi, temp_string + BUFFER_SIZE - 0x01   ;buffer address where we will write
-    mov byte [rdi], TERM_CHAR                   ;set to buffer terminatee character
-    dec rdi                           
-
 .next:
 
     mov al, bl                      ;save cur number to rsi       
-    and al, 0x01                    ;get last digit
+    and al, ch                      ;get last digit
 
-    add al, '0'                     ;ascii code character
+    mov al, byte [rdx + rax]  ;get character in hex representation
 
     stosb                           ;set to buffer current character
 
-    shr rbx, 0x01                   ;next digit
+    shr rbx, cl                     ;next digit
 
     cmp rbx, 0x00                   ;check num is zero
     jne .next
@@ -395,52 +415,7 @@ _print_bin_num:
     inc rdi                         ;------------------
     mov rbx, rdi                    ;get correct temp_string address
 
-    call _print_string              ;print temp_string 
-
-    PRINT_STRING qword [out_descriptor], Ascii_table + 'b', 0x01
-
-    ret 
-
-;------------------------------------------------------------------------
-;specifier mode processing. Print number in octal number system
-;------------------------------------------------------------------------
-;Expected:  out_descriptor 
-;Entre:     rbx - number 
-;Exit:      none
-;Destroy:   rax, rdx, rsi, rdi 
-;------------------------------------------------------------------------
-   
-_print_oct_num:
-
-    std
-
-    mov di, ds
-    mov es, di
-
-    mov rdi, temp_string + BUFFER_SIZE - 0x01   ;buffer address where we will write
-    mov byte [rdi], TERM_CHAR                   ;set to buffer terminatee character
-    dec rdi                              
-
-.next:
-
-    mov al, bl                      ;save cur number to rsi       
-    and al, 0x07                    ;get last digit
-
-    add al, '0'                     ;ascii code character
-
-    stosb                           ;set to buffer current character
-
-    shr rbx, 0x03                   ;next digit
-
-    cmp rbx, 0x00                   ;check num is zero
-    jne .next
-
-    inc rdi                         ;------------------
-    mov rbx, rdi                    ;get correct temp_string address
-
-    call _print_string              ;print temp_string 
-
-    PRINT_STRING qword [out_descriptor], Ascii_table + 'o', 0x01
+    call _print_string              ;print temp_string
 
     ret 
 
