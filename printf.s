@@ -26,12 +26,12 @@ global _start                  ; predefined entry point name for ld
 
 _start:    
     
-    push '!'
+    push 127d
+    push 33d
+    push 100d
+    push 3802d
     push string
-    push 101010b
-    push 0126574o
-    push 0x0ffee433
-    push 12345d
+    push -1d
     
     push msg
     push CONSOL_OUT
@@ -170,7 +170,7 @@ _specificator_processing:
     jmp .end_switch
 
 .print_switch_defaulte:
-    nop                             ;do anathing
+    sub r12, 0x08                   ;another specifier does not require a parameter
 
 .end_switch:  
 
@@ -187,7 +187,7 @@ section .rodata
                         .print_switch_defaulte, \
                         .print_switch_defaulte, \
                         .print_switch_defaulte, \
-                        .print_switch_hex_num , \
+                        .print_switch_defaulte, \
                         .print_switch_defaulte, \
                         .print_switch_defaulte, \
                         .print_switch_defaulte, \
@@ -203,7 +203,7 @@ section .rodata
                         .print_switch_defaulte, \
                         .print_switch_defaulte, \
                         .print_switch_defaulte, \
-                        .print_switch_defaulte
+                        .print_switch_hex_num
 
 Cnt_print_mode equ ($ - .start_print_switch) >> 0x03 ;count print's mode 
 
@@ -425,8 +425,8 @@ out_descriptor: dq 0x00
 
 temp_string: times BUFFER_SIZE db 0x00
             
-msg:        db "%% %d %h %o %b %s %c I did it!!!", 0xa, TERM_CHAR
-string:     db "_ded32", TERM_CHAR
+msg:        db "%d %s %x %d%%%c%b", 0xa, TERM_CHAR
+string:     db "Love", TERM_CHAR
 
 
 
