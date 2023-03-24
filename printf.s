@@ -401,8 +401,7 @@ section .data
 
 out_descriptor: dq 0x00
 
-temp_string:    times BUFFER_SIZE db 0x00
-buffer_string:  times BUFFER_SIZE db 0x00
+temp_string: times BUFFER_SIZE db 0x00
             
 msg:        db "%a%z%# %d %s  %x %d%%%c%b", 0xa, TERM_CHAR
 string:     db "Love", TERM_CHAR
