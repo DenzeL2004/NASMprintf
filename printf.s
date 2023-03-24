@@ -78,7 +78,7 @@ _print:
     mov rsi, r10
 
 
-    call _puts ;PRINT_STRING CONSOL_DESCRIPTOR, r10, rdx
+    call _puts
 
     add r12, 0x08                   ;set pointer to input print's parameters
     mov rbx, qword [rbp + r12]
@@ -99,7 +99,7 @@ _print:
     mov rdi, CONSOL_DESCRIPTOR
     mov rsi, r10
 
-    call _puts ;PRINT_STRING CONSOL_DESCRIPTOR, r10, rdx
+    call _puts
 
     mov rax, r12                    ;---------------------------------
     sub rax, rsp                    ;get counter of print's parameters
@@ -216,13 +216,13 @@ section .text
    
 _print_char:
 
-    add rbx, Ascii_table
+    mov byte [temp_string], bl
 
     mov rdi, CONSOL_DESCRIPTOR
-    mov rsi, rbx
+    mov rsi, temp_string
     mov rdx, 0x01
 
-    call _puts ;PRINT_STRING CONSOL_DESCRIPTOR, rbx, 0x01
+    call _puts
     ret 
 
 ;------------------------------------------------------------------------
@@ -244,7 +244,7 @@ _print_string:
     mov rdi, CONSOL_DESCRIPTOR
     mov rsi, rbx
 
-    call _puts ;PRINT_STRING CONSOL_DESCRIPTOR, rbx, rdx
+    call _puts
     ret 
 
 ;------------------------------------------------------------------------
@@ -277,10 +277,13 @@ _print_int_dec_num:
     mov ebx, eax
 
     mov rdi, CONSOL_DESCRIPTOR
-    mov rsi, Ascii_table + '-'
+
+    mov byte [temp_string],  '-'
+    mov rsi, temp_string
+
     mov rdx, 0x01
 
-    call _puts ;PRINT_STRING CONSOL_DESCRIPTOR, Ascii_table + '-', 0x01
+    call _puts
 
 .not_negative:
 
@@ -327,15 +330,18 @@ _print_int_dec_num:
    
 _print_hex_rep:
 
-    mov rdx, Hex_digit
+    mov rdx, Hex_digits
     mov cl, 0x04
     call _print_num_rep
 
     mov rdi, CONSOL_DESCRIPTOR
-    mov rsi, Ascii_table + 'h'
+    
+    mov byte [temp_string],  'h'
+    mov rsi, temp_string
+
     mov rdx, 0x01
 
-    call _puts ;PRINT_STRING  CONSOL_DESCRIPTOR, Ascii_table + 'h', 0x01
+    call _puts 
 
     ret 
 
@@ -350,15 +356,18 @@ _print_hex_rep:
    
 _print_oct_rep:
 
-    mov rdx, Oct_digit
+    mov rdx, Oct_digits
     mov cl, 0x03
     call _print_num_rep
 
     mov rdi, CONSOL_DESCRIPTOR
-    mov rsi, Ascii_table + 'o'
+    
+    mov byte [temp_string],  'o'
+    mov rsi, temp_string
+
     mov rdx, 0x01
 
-    call _puts ;PRINT_STRING  CONSOL_DESCRIPTOR, Ascii_table + 'o', 0x01
+    call _puts
 
     ret 
 
@@ -373,15 +382,18 @@ _print_oct_rep:
    
 _print_bin_rep:
 
-    mov rdx, Bin_digit
+    mov rdx, Bin_digits
     mov cl, 0x01
     call _print_num_rep
 
     mov rdi, CONSOL_DESCRIPTOR
-    mov rsi, Ascii_table + 'b'
+
+    mov byte [temp_string],  'o'
+    mov rsi, temp_string
+
     mov rdx, 0x01
 
-    call _puts ;PRINT_STRING  CONSOL_DESCRIPTOR, Ascii_table + 'b', 0x01
+    call _puts
 
     ret 
 
