@@ -25,21 +25,80 @@
 ;----------------------------------------------------------------
 ;print to consol one symbol
 ;----------------------------------------------------------------
-;Enter:     %1 - stdout, %2 - buffer addres, %3 - string's lenrth
+;Enter:     rdi - stdout, rsi - buffer addres, rdx - string's length
 ;Exit:      none
-;Destroy:   rax, rdx, rdi, rsi 
+;Destroy:   rcx, r11
 ;----------------------------------------------------------------
-%macro PRINT_STRING 3
-    
-    mov rax, 1h     ;syscall number
-    mov rdi, %1     ;stdout address
+_puts:
 
-    mov rsi, %2     ;string address
-    mov rdx, %3     ;string's lenrth
+    mov qword [print_out_descriptor], rdi
 
+    cmp rdx, BUFFER_SIZE                        ;-------------------------------------------------------
+    jne .cur_string_less_buffer                 ;check length current string is greater than buffer size
+
+    push rsi                                    ;save current string address
+    push rdx                                    ;save current string length
+
+    call _print_buffer
+
+    push rsi                                    ;get current string address
+    push rdx                                    ;get current string length
+
+    mov rax, 1h                                 ;syscall number
     syscall
 
-%endmacro
+    jmp .return
+
+.cur_string_less_buffer:
+
+    mov rcx, BUFFER_SIZE                        ;get the amount of free space in the buffer
+    sub rcx, qword [print_buffer_offset]        ;--------------------------------------------------------
+
+    cmp rcx, rdx                                ;-----------------------------------------------------
+    jae .buffer_is_not_full                     ;checking if the current word will overflow the buffer
+
+    mov rdi, print_buffer  
+    add rdi, qword [print_buffer_offset]
+    sub rdx, rcx                                    
+
+    call _memcpy
+
+    push rsi                                    ;save current string address
+    push rdx                                    ;save current string length
+
+    call _print_buffer
+
+    push rsi                                    ;get current string address
+    push rdx                                    ;get current string length
+
+
+.buffer_is_not_full:
+
+    mov rdi, print_buffer  
+    add rdi, qword [print_buffer_offset]
+
+    mov rcx, rdx                                ;get the number of characters to be copied to the buffer
+
+    call _memcpy
+
+    add qword [print_buffer_offset], rdx        ;
+.return:
+
+    ret
+
+_print_buffer:
+
+    mov rdi, qword [print_out_descriptor]
+
+    mov rsi, print_buffer                       ;buffer address
+    mov rdx, qword [print_buffer_offset]        ;the length of the word in the buffer 
+
+    mov rax, 1h                                 ;syscall number
+    syscall
+
+    mov qword [print_buffer_offset], 0x00       ;buffer is free
+
+    ret
 
 section .text
 
@@ -54,17 +113,45 @@ section .text
 
 _get_len:
 
-    cld                 ;set df by 0
+    cld      
 
     mov al, TERM_CHAR
-    mov rsi, rdi    
+    mov rsi, rdi            ;save start address
 
-    repne scasb           ;fint address where string end terminate symbol
-    
-    sub rdi, rsi          ;calc length
     dec rdi
+.next:
+    inc rdi 
+
+    cmp byte [rdi], al
+    jne .next
+
+    sub rdi, rsi            ;calc length
 
     ret
+
+
+;------------------------------------------------------------------------
+;copy n symbols from src to dst string
+;------------------------------------------------------------------------ 
+;Entry:     rdi - destination address, rsi - source address, rcx - conter
+;Exit:      rdi
+;Destroy:   rdi, rsi, rcx, df
+;------------------------------------------------------------------------
+_memcpy:
+
+    cld 
+
+    rep movsb               ;copy from source to destination
+
+    ret 
+
+
+section .data
+
+print_out_descriptor:   dq 0x00
+
+print_buffer_offset:    dq 0x00
+print_buffer:           times BUFFER_SIZE db 0x00
 
 
 section .rodata 

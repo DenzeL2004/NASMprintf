@@ -74,7 +74,11 @@ _print:
     mov rdx, r9                     ;-----------------
     sub rdx, r10                    ;get length string
 
-    PRINT_STRING CONSOL_DESCRIPTOR, r10, rdx
+    mov rdi, CONSOL_DESCRIPTOR
+    mov rsi, r10
+
+
+    call _puts ;PRINT_STRING CONSOL_DESCRIPTOR, r10, rdx
 
     add r12, 0x08                   ;set pointer to input print's parameters
     mov rbx, qword [rbp + r12]
@@ -92,10 +96,15 @@ _print:
     mov rdx, r9                     ;-----------------
     sub rdx, r10                    ;get length string
 
-    PRINT_STRING CONSOL_DESCRIPTOR, r10, rdx
+    mov rdi, CONSOL_DESCRIPTOR
+    mov rsi, r10
+
+    call _puts ;PRINT_STRING CONSOL_DESCRIPTOR, r10, rdx
 
     mov rax, r12                    ;---------------------------------
     sub rax, rsp                    ;get counter of print's parameters
+
+    call _print_buffer
 
     pop rbp
     ret
@@ -208,7 +217,12 @@ section .text
 _print_char:
 
     add rbx, Ascii_table
-    PRINT_STRING CONSOL_DESCRIPTOR, rbx, 0x01
+
+    mov rdi, CONSOL_DESCRIPTOR
+    mov rsi, rbx
+    mov rdx, 0x01
+
+    call _puts ;PRINT_STRING CONSOL_DESCRIPTOR, rbx, 0x01
     ret 
 
 ;------------------------------------------------------------------------
@@ -227,7 +241,10 @@ _print_string:
 
     mov rdx, rdi                    ;save string's length
 
-    PRINT_STRING CONSOL_DESCRIPTOR, rbx, rdx
+    mov rdi, CONSOL_DESCRIPTOR
+    mov rsi, rbx
+
+    call _puts ;PRINT_STRING CONSOL_DESCRIPTOR, rbx, rdx
     ret 
 
 ;------------------------------------------------------------------------
@@ -259,7 +276,11 @@ _print_int_dec_num:
 
     mov ebx, eax
 
-    PRINT_STRING CONSOL_DESCRIPTOR, Ascii_table + '-', 0x01
+    mov rdi, CONSOL_DESCRIPTOR
+    mov rsi, Ascii_table + '-'
+    mov rdx, 0x01
+
+    call _puts ;PRINT_STRING CONSOL_DESCRIPTOR, Ascii_table + '-', 0x01
 
 .not_negative:
 
@@ -310,7 +331,11 @@ _print_hex_rep:
     mov cl, 0x04
     call _print_num_rep
 
-    PRINT_STRING  CONSOL_DESCRIPTOR, Ascii_table + 'h', 0x01
+    mov rdi, CONSOL_DESCRIPTOR
+    mov rsi, Ascii_table + 'h'
+    mov rdx, 0x01
+
+    call _puts ;PRINT_STRING  CONSOL_DESCRIPTOR, Ascii_table + 'h', 0x01
 
     ret 
 
@@ -329,7 +354,11 @@ _print_oct_rep:
     mov cl, 0x03
     call _print_num_rep
 
-    PRINT_STRING  CONSOL_DESCRIPTOR, Ascii_table + 'o', 0x01
+    mov rdi, CONSOL_DESCRIPTOR
+    mov rsi, Ascii_table + 'o'
+    mov rdx, 0x01
+
+    call _puts ;PRINT_STRING  CONSOL_DESCRIPTOR, Ascii_table + 'o', 0x01
 
     ret 
 
@@ -348,7 +377,11 @@ _print_bin_rep:
     mov cl, 0x01
     call _print_num_rep
 
-    PRINT_STRING  CONSOL_DESCRIPTOR, Ascii_table + 'b', 0x01
+    mov rdi, CONSOL_DESCRIPTOR
+    mov rsi, Ascii_table + 'b'
+    mov rdx, 0x01
+
+    call _puts ;PRINT_STRING  CONSOL_DESCRIPTOR, Ascii_table + 'b', 0x01
 
     ret 
 
@@ -399,9 +432,8 @@ _print_num_rep:
 
 section .data
 
-out_descriptor: dq 0x00
+temp_string:    times BUFFER_SIZE db 0x00
 
-temp_string: times BUFFER_SIZE db 0x00
             
 msg:        db "%a%z%# %d %s  %x %d%%%c%b", 0xa, TERM_CHAR
 string:     db "Love", TERM_CHAR
