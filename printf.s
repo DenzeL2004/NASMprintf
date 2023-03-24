@@ -25,7 +25,7 @@ section .text
 global _start                  ; predefined entry point name for ld
 
 _start:    
-    
+
     push 127d
     push 33d
     push 100d
@@ -34,7 +34,7 @@ _start:
     push -1d
     
     push msg
-    push CONSOL_OUT
+    
     call _print
 
     add sp, 0x08 * 8d
@@ -45,8 +45,7 @@ _start:
 ;------------------------------------------------------------------------
 ;print out the string with parameters in the format string
 ;------------------------------------------------------------------------
-;Entre:     [rbp + 0x10] - out descriptor
-;           [rbp + 0x18] - format string address, any number of input parameters
+;Entre:     [rbp + 0x10] - format string address, any number of input parameters
 ;Exit:      none
 ;Destroy:   rax, rdx, rsi, rdi
 ;           r9  - current position in format string, r10 - last not specificator symbol
@@ -59,11 +58,6 @@ _print:
     mov  rbp, rsp  
 
     mov r12, 0x10                    ;parameters offset
-
-    mov rax, [rbp + r12]            ;-------------------  
-    mov qword [out_descriptor], rax ;save out descriptor
-
-    add r12, 0x08                   ;move on to the next parametr
 
     mov r9, qword [rbp + r12]       ;start format string address
     mov r10, r9                     ;start format string address
@@ -80,7 +74,7 @@ _print:
     mov rdx, r9                     ;-----------------
     sub rdx, r10                    ;get length string
 
-    PRINT_STRING qword [out_descriptor], r10, rdx
+    PRINT_STRING CONSOL_DESCRIPTOR, r10, rdx
 
     add r12, 0x08                   ;set pointer to input print's parameters
     mov rbx, qword [rbp + r12]
@@ -98,7 +92,7 @@ _print:
     mov rdx, r9                     ;-----------------
     sub rdx, r10                    ;get length string
 
-    PRINT_STRING qword [out_descriptor], r10, rdx
+    PRINT_STRING CONSOL_DESCRIPTOR, r10, rdx
 
     mov rax, r12                    ;---------------------------------
     sub rax, rsp                    ;get counter of print's parameters
@@ -122,20 +116,9 @@ _specificator_processing:
     inc r9                          ;-----------------------         
     mov al, byte [r9]               ;get specificator's mode 
 
-    cmp al, SPECIFICATOR            ;check character is specificator symbol
-    jne .not_specificator_symbol
-
-    PRINT_STRING qword [out_descriptor], Ascii_table + SPECIFICATOR, 0x01 
-
-    sub r12, 0x08                   ;specifier printout does not require a parameter
-
-    jmp .end_switch
-
-.not_specificator_symbol:
-
     sub al, 'b'                     ;subtract the minimum switch's value 
     cmp al, byte Cnt_print_mode
-    jae .print_switch_defaulte
+    jae .print_switch_default
 
     jmp qword [.start_print_switch + rax * 0x08]
 
@@ -169,7 +152,11 @@ _specificator_processing:
     call _print_bin_rep
     jmp .end_switch
 
-.print_switch_defaulte:
+.print_switch_default:
+    xor rbx, rbx
+    mov bl, byte [r9]
+    call _print_char
+
     sub r12, 0x08                   ;another specifier does not require a parameter
 
 .end_switch:  
@@ -181,28 +168,28 @@ _specificator_processing:
 
 section .rodata
 
-.start_print_switch: dq .print_switch_bin_num , \
-                        .print_switch_char    , \
-                        .print_switch_dec_num , \
-                        .print_switch_defaulte, \
-                        .print_switch_defaulte, \
-                        .print_switch_defaulte, \
-                        .print_switch_defaulte, \
-                        .print_switch_defaulte, \
-                        .print_switch_defaulte, \
-                        .print_switch_defaulte, \
-                        .print_switch_defaulte, \
-                        .print_switch_defaulte, \
-                        .print_switch_defaulte, \
+.start_print_switch: dq .print_switch_bin_num, \
+                        .print_switch_char   , \
+                        .print_switch_dec_num, \
+                        .print_switch_default, \
+                        .print_switch_default, \
+                        .print_switch_default, \
+                        .print_switch_default, \
+                        .print_switch_default, \
+                        .print_switch_default, \
+                        .print_switch_default, \
+                        .print_switch_default, \
+                        .print_switch_default, \
+                        .print_switch_default, \
                         .print_switch_oct_num,  \
-                        .print_switch_defaulte, \
-                        .print_switch_defaulte, \
-                        .print_switch_defaulte, \
-                        .print_switch_string  , \
-                        .print_switch_defaulte, \
-                        .print_switch_defaulte, \
-                        .print_switch_defaulte, \
-                        .print_switch_defaulte, \
+                        .print_switch_default, \
+                        .print_switch_default, \
+                        .print_switch_default, \
+                        .print_switch_string , \
+                        .print_switch_default, \
+                        .print_switch_default, \
+                        .print_switch_default, \
+                        .print_switch_default, \
                         .print_switch_hex_num
 
 Cnt_print_mode equ ($ - .start_print_switch) >> 0x03 ;count print's mode 
@@ -221,7 +208,7 @@ section .text
 _print_char:
 
     add rbx, Ascii_table
-    PRINT_STRING qword [out_descriptor], rbx, 0x01
+    PRINT_STRING CONSOL_DESCRIPTOR, rbx, 0x01
     ret 
 
 ;------------------------------------------------------------------------
@@ -235,15 +222,12 @@ _print_char:
    
 _print_string:
 
-    mov di, ds                      ;-------------------
-    mov es, di                      ;-------------------
-
     mov rdi, rbx                    ;-------------------
     call _get_len                   ;get string's length
 
     mov rdx, rdi                    ;save string's length
 
-    PRINT_STRING qword [out_descriptor], rbx, rdx
+    PRINT_STRING CONSOL_DESCRIPTOR, rbx, rdx
     ret 
 
 ;------------------------------------------------------------------------
@@ -275,14 +259,11 @@ _print_int_dec_num:
 
     mov ebx, eax
 
-    PRINT_STRING qword [out_descriptor], Ascii_table + '-', 0x01
+    PRINT_STRING CONSOL_DESCRIPTOR, Ascii_table + '-', 0x01
 
 .not_negative:
 
     std
-
-    mov di, ds
-    mov es, di
 
     mov rdi, temp_string + BUFFER_SIZE - 0x01   ;buffer address where we will write
     mov byte [rdi], TERM_CHAR                   ;set to buffer terminatee character
@@ -329,7 +310,7 @@ _print_hex_rep:
     mov cl, 0x04
     call _print_num_rep
 
-    PRINT_STRING  qword [out_descriptor], Ascii_table + 'h', 0x01
+    PRINT_STRING  CONSOL_DESCRIPTOR, Ascii_table + 'h', 0x01
 
     ret 
 
@@ -348,7 +329,7 @@ _print_oct_rep:
     mov cl, 0x03
     call _print_num_rep
 
-    PRINT_STRING  qword [out_descriptor], Ascii_table + 'o', 0x01
+    PRINT_STRING  CONSOL_DESCRIPTOR, Ascii_table + 'o', 0x01
 
     ret 
 
@@ -367,7 +348,7 @@ _print_bin_rep:
     mov cl, 0x01
     call _print_num_rep
 
-    PRINT_STRING  qword [out_descriptor], Ascii_table + 'b', 0x01
+    PRINT_STRING  CONSOL_DESCRIPTOR, Ascii_table + 'b', 0x01
 
     ret 
 
@@ -382,10 +363,7 @@ _print_bin_rep:
    
 _print_num_rep:
 
-   std
-
-    mov di, ds
-    mov es, di
+    std
 
     mov rdi, temp_string + BUFFER_SIZE - 0x01   ;buffer address where we will write
     
@@ -423,9 +401,10 @@ section .data
 
 out_descriptor: dq 0x00
 
-temp_string: times BUFFER_SIZE db 0x00
+temp_string:    times BUFFER_SIZE db 0x00
+buffer_string:  times BUFFER_SIZE db 0x00
             
-msg:        db "%d %s %x %d%%%c%b", 0xa, TERM_CHAR
+msg:        db "%a%z%# %d %s  %x %d%%%c%b", 0xa, TERM_CHAR
 string:     db "Love", TERM_CHAR
 
 

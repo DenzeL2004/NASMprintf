@@ -3,7 +3,7 @@
 
 %define TERM_CHAR 0x00      ;terminate string's symbol 
 
-%define CONSOL_OUT 0x01
+%define CONSOL_DESCRIPTOR 0x01
 
 %define BUFFER_SIZE 0xff    
 
