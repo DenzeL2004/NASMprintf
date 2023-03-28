@@ -4,3 +4,5 @@ gen
 printf
 *.lst
 *.o
+asm_print
+*.cpp
