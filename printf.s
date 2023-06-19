@@ -39,7 +39,7 @@ _printf:
     push rsi
     push rdi
 
-    call printf wrt ..plt              
+    call printf             
 
     add rsp, 0x08 * 6d                  ;clearing the stack of arguments
 
@@ -195,7 +195,7 @@ section .rodata
                         .print_switch_default, \
                         .print_switch_default, \
                         .print_switch_default, \
-                        .print_switch_oct_num,  \
+                        .print_switch_oct_num, \
                         .print_switch_default, \
                         .print_switch_default, \
                         .print_switch_default, \

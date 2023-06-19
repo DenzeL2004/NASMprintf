@@ -7,21 +7,14 @@ FLAGS = -Wshadow -Winit-self -Wredundant-decls -Wcast-align -Wundef -Wfloat-equa
 		-Wtype-limits -Wwrite-strings -D_DEBUG -D_EJUDGE_CLIENT_SIDE
 
 
-asm_print: 	obj/main.o obj/printf.o 
-		gcc -no-pie obj/main.o obj/printf.o -o asm_print
+asm_print: 	obj/printf.o 
+		ld -s -o printf obj/printf.o
 
-C_print: 	obj/call_Cprint.o
-		ld obj/call_Cprint.o -o C_print /lib/x86_64-linux-gnu/libc.so -dynamic-linker /lib64/ld-linux-x86-64.so.2
-
-obj/main.o: main.cpp
-		gcc main.cpp -c -o obj/main.o $(FLAGS)
 
 obj/printf.o: printf.s
-		nasm -f elf64 -l lst/printf.o printf.s -o obj/printf.o
+		nasm -f elf64 -l lst/printf.lst printf.s -o obj/printf.o
 
 
-obj/call_Cprint.o: call_Cprint.s
-		nasm -f elf64 -l lst/call_Cprint.lst call_Cprint.s -o obj/call_Cprint.o
 
 mkdirectory:
 	mkdir -p obj;
